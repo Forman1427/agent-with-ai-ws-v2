@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Агент - генератор текста</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+          font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          min-height: 100vh;
+          padding: 20px;
+          color: #333;
+        }
+
+        .container {
+          max-width: 900px;
+          margin: 0 auto;
+          background: #fff;
+          border-radius: 12px;
+          box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+          padding: 30px;
+        }
+
+        h1 {
+          text-align: center;
+          color: #667eea;
+          margin-bottom: 24px;
+          font-size: 26px;
+        }
+
+        h2 {
+          margin-bottom: 16px;
+          color: #444;
+          font-size: 20px;
+        }
+
+        button {
+          background: #667eea;
+          color: #fff;
+          border: none;
+          border-radius: 6px;
+          padding: 10px 20px;
+          font-size: 14px;
+          cursor: pointer;
+          transition: .2s;
+          margin-right: 8px;
+          margin-top: 8px;
+        }
+
+        button:hover {
+          background: #5568d3;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 10px rgba(102,126,234,0.4);
+        }
+
+        button.secondary {
+          background: #e0e0e0;
+          color: #555;
+        }
+
+        button.secondary:hover {
+          background: #d0d0d0;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        input, textarea {
+          width: 100%;
+          padding: 10px 12px;
+          border-radius: 6px;
+          border: 1px solid #d0d0d0;
+          font-size: 14px;
+          margin-bottom: 12px;
+        }
+
+        input:focus, textarea:focus {
+          outline: none;
+          border-color: #667eea;
+        }
+
+        textarea {
+          min-height: 100px;
+          resize: vertical;
+        }
+
+        .mode { display: none; }
+        .mode.active { display: block; }
+
+        .block {
+          background: #f8f9fa;
+          border-radius: 8px;
+          padding: 18px;
+          margin-bottom: 18px;
+        }
+
+        .label {
+          font-weight: 600;
+          margin-bottom: 6px;
+          display: block;
+          color: #555;
+        }
+
+        .error {
+          display: none;
+          margin-bottom: 12px;
+          padding: 10px 12px;
+          border-radius: 6px;
+          background: #f8d7da;
+          color: #721c24;
+          font-size: 14px;
+        }
+
+        .error.visible { display: block; }
+
+        .connection-status {
+          text-align: center;
+          padding: 8px 10px;
+          border-radius: 6px;
+          font-size: 13px;
+          margin-bottom: 10px;
+          display: none;
+        }
+
+        .connection-status.connected {
+          display: block;
+          background: #d4edda;
+          color: #155724;
+        }
+
+        .connection-status.connecting {
+          display: block;
+          background: #cce5ff;
+          color: #004085;
+        }
+
+        .connection-status.disconnected {
+          display: block;
+          background: #fff3cd;
+          color: #856404;
+        }
+
+        .progress-wrapper {
+          width: 100%;
+          height: 28px;
+          background: #e0e0e0;
+          border-radius: 6px;
+          overflow: hidden;
+          margin: 12px 0;
+        }
+
+        .progress-bar {
+          height: 100%;
+          width: 0%;
+          background: linear-gradient(90deg, #667eea, #764ba2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #fff;
+          font-size: 13px;
+          font-weight: 600;
+          transition: width .4s ease;
+        }
+
+        .status-text {
+          font-size: 15px;
+          margin-top: 4px;
+          color: #555;
+        }
+
+        .status-text.completed {
+          color: #28a745;
+          font-weight: 600;
+        }
+
+        .result {
+          display: none;
+          margin-top: 14px;
+          padding: 12px;
+          border-radius: 8px;
+          background: #e8f5e9;
+        }
+
+        .result.visible { display: block; }
+
+        .result-title {
+          font-weight: 600;
+          color: #28a745;
+          margin-bottom: 6px;
+        }
+
+        .result-body {
+          background: #fff;
+          border-radius: 6px;
+          padding: 10px;
+          font-size: 14px;
+          line-height: 1.5;
+        }
+
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 13px;
+        }
+
+        th, td {
+          padding: 8px 6px;
+          border-bottom: 1px solid #e0e0e0;
+          text-align: left;
+        }
+
+        th {
+          background: #667eea;
+          color: #fff;
+          font-weight: 600;
+        }
+
+        tr:hover td {
+          background: #f2f2f2;
+        }
+
+        .badge {
+          display: inline-block;
+          padding: 3px 8px;
+          border-radius: 999px;
+          font-size: 11px;
+          font-weight: 600;
+        }
+
+        .badge.queued { background: #fff3cd; color: #856404; }
+        .badge.in-progress { background: #cce5ff; color: #004085; }
+        .badge.completed { background: #d4edda; color: #155724; }
+        .badge.failed { background: #f8d7da; color: #721c24; }
+
+        .footer {
+          margin-top: 18px;
+          text-align: center;
+          font-size: 12px;
+          color: #888;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>AI агент — генератор текста</h1>
+
+    <div id="error" class="error"></div>
+
+    <!-- Режим: создание задачи -->
+    <div id="mode-create" class="mode active">
+        <div class="block">
+            <h2>Создать задание</h2>
+            <label class="label" for="userName">Ваше имя</label>
+            <input id="userName" type="text" placeholder="Иван">
+
+            <label class="label" for="taskText">Задание</label>
+            <textarea id="taskText" placeholder="Например: Сгенерируй текст о рыбалке для блога"></textarea>
+
+            <button id="sendBtn">Отправить</button>
+            <button class="secondary" id="myTasksBtn">Мои задачи</button>
+        </div>
+    </div>
+
+    <!-- Режим: прогресс -->
+    <div id="mode-progress" class="mode">
+        <div class="block">
+            <h2>Прогресс выполнения</h2>
+
+            <div id="wsStatus" class="connection-status disconnected">
+                🔴 Нет соединения с сервером
+            </div>
+
+            <div class="progress-wrapper">
+                <div id="progressBar" class="progress-bar">
+                    <span id="progressText">0%</span>
+                </div>
+            </div>
+
+            <div id="statusText" class="status-text">Ожидание начала...</div>
+
+            <div id="result" class="result">
+                <div class="result-title">Результат</div>
+                <div id="resultText" class="result-body"></div>
+            </div>
+
+            <button class="secondary" id="listFromProgress">Мои задачи</button>
+            <button class="secondary" id="createNewBtn">Создать новое</button>
+        </div>
+    </div>
+
+    <!-- Режим: список задач -->
+    <div id="mode-list" class="mode">
+        <div class="block">
+            <h2 id="tasksTitle">Задачи пользователя: </h2>
+
+            <div style="margin-top:10px; overflow-x:auto;">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Имя</th>
+                        <th>Создана</th>
+                        <th>Описание</th>
+                        <th>Статус</th>
+                        <th>Прогресс</th>
+                        <th>Завершена</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody id="tasksBody"></tbody>
+                </table>
+            </div>
+
+            <div id="noTasks" style="display:none; text-align:center; margin-top:10px; color:#888;">
+                Задачи не найдены
+            </div>
+
+            <button class="secondary" id="createFromList">Создать новое</button>
+        </div>
+    </div>
+
+    <!-- Режим: детали задачи -->
+    <div id="mode-details" class="mode">
+        <div class="block">
+            <h2>Детали задачи</h2>
+
+            <div class="label">ID</div>
+            <div id="d-id" class="result-body" style="margin-bottom:8px;"></div>
+
+            <div class="label">Пользователь</div>
+            <div id="d-user" class="result-body" style="margin-bottom:8px;"></div>
+
+            <div class="label">Задание</div>
+            <div id="d-text" class="result-body" style="margin-bottom:8px;"></div>
+
+            <div class="label">Статус</div>
+            <div id="d-status" class="result-body" style="margin-bottom:8px;"></div>
+
+            <div class="label">Прогресс</div>
+            <div id="d-progress" class="result-body" style="margin-bottom:8px;"></div>
+
+            <div class="label">Создана</div>
+            <div id="d-created" class="result-body" style="margin-bottom:8px;"></div>
+
+            <div class="label">Выполнена</div>
+            <div id="d-completed" class="result-body" style="margin-bottom:8px;"></div>
+
+            <div id="d-resultBlock" class="result" style="margin-top:10px;">
+                <div class="result-title">Результат</div>
+                <div id="d-result" class="result-body"></div>
+            </div>
+
+            <button class="secondary" id="backToList">К списку</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const API_BASE = 'http://localhost:8080/api/v1';
+    const WS_BASE = 'ws://localhost:8080/ws';
+
+    let ws = null;
+    let allTasks = [];
+    let filteredTasks = [];
+    let currentTaskId = null;
+    let currentUserName = null;
+
+    function showError(msg) {
+      const el = document.getElementById('error');
+      el.textContent = msg;
+      el.classList.add('visible');
+      setTimeout(() => el.classList.remove('visible'), 4000);
+    }
+
+    function switchMode(id) {
+      ['mode-create', 'mode-progress', 'mode-list', 'mode-details'].forEach(m => {
+        document.getElementById(m).classList.remove('active');
+      });
+      document.getElementById(id).classList.add('active');
+    }
+
+    function showCreate() {
+      switchMode('mode-create');
+    }
+
+    function showList() {
+      switchMode('mode-list');
+      renderTasks(filteredTasks.length ? filteredTasks : allTasks);
+    }
+
+    function resetProgressUI() {
+      updateProgress(0, 'Ожидание начала...');
+      const res = document.getElementById('result');
+      res.classList.remove('visible');
+      document.getElementById('resultText').textContent = '';
+      setWSStatus('disconnected');
+    }
+
+    function setWSStatus(state) {
+      const el = document.getElementById('wsStatus');
+      el.className = 'connection-status ' + state;
+      if (state === 'connected') {
+        el.textContent = '🟢 WebSocket подключен';
+      } else if (state === 'connecting') {
+        el.textContent = '🔌 Подключение к WebSocket...';
+      } else {
+        el.textContent = '🔴 Соединение не активно';
+      }
+    }
+
+    function connectWSForUser(userName) {
+      if (!userName) return;
+
+      if (ws) {
+        ws.close();
+        ws = null;
+      }
+
+      setWSStatus('connecting');
+
+      try {
+        ws = new WebSocket(`${WS_BASE}/tasks?userName=${encodeURIComponent(userName)}`);
+
+        ws.onopen = () => {
+          setWSStatus('connected');
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const msg = JSON.parse(event.data);
+
+            handleWsMessage(msg);
+          } catch (e) {
+            console.error('WS parse error', e);
+          }
+        };
+
+        ws.onclose = () => {
+          setWSStatus('disconnected');
+        };
+
+        ws.onerror = () => {
+          setWSStatus('disconnected');
+          showError('Ошибка WebSocket');
+        };
+      } catch (e) {
+        setWSStatus('disconnected');
+        showError('Не удалось открыть WebSocket');
+      }
+    }
+
+    function handleWsMessage(msg) {
+      const taskId = msg.taskId;
+      const status = msg.status;
+      const progress = msg.progress ?? 0;
+      const completedAt = msg.completedAt || null;
+      const resultText = msg.resultText;
+
+      updateTaskInCache(taskId, status, progress, completedAt, resultText);
+
+      if (document.getElementById('mode-progress').classList.contains('active') &&
+          currentTaskId === taskId) {
+
+        if (msg.type === 'TASK_STARTED' || msg.type === 'TASK_PROGRESS') {
+          updateProgress(progress, msg.message || 'В процессе');
+        } else if (msg.type === 'TASK_COMPLETED') {
+          updateProgress(100, 'Выполнено');
+          showResult(resultText);
+        } else if (msg.type === 'TASK_FAILED') {
+          updateProgress(progress, 'Ошибка');
+          showError(msg.errorText || 'Ошибка выполнения задачи');
+        }
+      }
+
+      if (document.getElementById('mode-list').classList.contains('active')) {
+        renderTasks(filteredTasks.length ? filteredTasks : allTasks);
+      }
+
+      if (document.getElementById('mode-details').classList.contains('active') &&
+          currentTaskId === taskId) {
+        applyDetailsUpdateFromCache(taskId);
+      }
+    }
+
+    function updateProgress(progress, text) {
+      const bar = document.getElementById('progressBar');
+      const label = document.getElementById('progressText');
+      const status = document.getElementById('statusText');
+
+      const p = Math.max(0, Math.min(100, progress || 0));
+      bar.style.width = p + '%';
+      label.textContent = p + '%';
+      status.textContent = text || '';
+
+      if (p === 100) {
+        status.classList.add('completed');
+      } else {
+        status.classList.remove('completed');
+      }
+    }
+
+    function showResult(text) {
+      const block = document.getElementById('result');
+      const body = document.getElementById('resultText');
+      body.textContent = text || 'Результат отсутствует';
+      block.classList.add('visible');
+    }
+
+    async function createTask() {
+      const userName = document.getElementById('userName').value.trim();
+      const taskText = document.getElementById('taskText').value.trim();
+
+      if (!userName) {
+        showError('Введите имя');
+        return;
+      }
+      if (!taskText) {
+        showError('Введите текст задания');
+        return;
+      }
+
+      currentUserName = userName;
+
+      try {
+        const resp = await fetch(`${API_BASE}/tasks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userName, taskText })
+        });
+
+        if (!resp.ok) {
+          throw new Error('Ошибка при создании задачи');
+        }
+
+        const data = await resp.json();
+        currentTaskId = data.taskId;
+
+        document.getElementById('taskText').value = '';
+
+        resetProgressUI();
+        switchMode('mode-progress');
+
+        connectWSForUser(currentUserName);
+      } catch (e) {
+        showError(e.message || 'Ошибка сети');
+      }
+    }
+
+    async function loadTasks() {
+      const userName = document.getElementById('userName').value.trim();
+      if (!userName) {
+        showError('Введите имя, чтобы загрузить задачи');
+        return;
+      }
+
+      currentUserName = userName;
+
+      try {
+        const resp = await fetch(`${API_BASE}/tasks?userName=${encodeURIComponent(userName)}`);
+        if (!resp.ok) {
+          throw new Error('Ошибка при загрузке задач');
+        }
+        const tasks = await resp.json();
+        allTasks = tasks;
+        filteredTasks = tasks;
+
+        const titleEl = document.getElementById('tasksTitle');
+        if (titleEl) {
+          titleEl.innerText = `Задачи пользователя: ${userName}`;
+        }
+
+        connectWSForUser(currentUserName);
+
+        switchMode('mode-list');
+        renderTasks(tasks);
+      } catch (e) {
+        showError(e.message || 'Ошибка сети');
+      }
+    }
+
+    function renderTasks(tasks) {
+      const tbody = document.getElementById('tasksBody');
+      const empty = document.getElementById('noTasks');
+      tbody.innerHTML = '';
+
+      if (!tasks || tasks.length === 0) {
+        empty.style.display = 'block';
+        return;
+      }
+      empty.style.display = 'none';
+
+      tasks.forEach(t => {
+        const tr = document.createElement('tr');
+        const statusClass = (t.status || '').toLowerCase();
+
+        tr.innerHTML = `
+          <td>${(t.taskId || '').substring(0, 8)}</td>
+          <td>${t.userName || ''}</td>
+          <td>${formatDate(t.createdAt)}</td>
+          <td>${t.taskText || ''}</td>
+          <td><span class="badge ${statusClass}">${formatStatus(t.status)}</span></td>
+          <td>${t.progress ?? 0}%</td>
+          <td>${t.completedAt ? formatDate(t.completedAt) : '—'}</td>
+          <td><button class="openBtn" data-id="${t.taskId}">Открыть</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      tbody.querySelectorAll('.openBtn').forEach(b => {
+        b.addEventListener('click', (e) => openDetails(e.currentTarget.dataset.id));
+      });
+    }
+
+    function applyDetailsUpdateFromCache(taskId) {
+      const t = allTasks.find(x => x.taskId === taskId) || filteredTasks.find(x => x.taskId === taskId);
+      if (!t) return;
+
+      document.getElementById('d-status').textContent = formatStatus(t.status);
+      document.getElementById('d-progress').textContent = (t.progress ?? 0) + '%';
+      document.getElementById('d-completed').textContent = t.completedAt ? formatDate(t.completedAt) : '—';
+
+      const resBlock = document.getElementById('d-resultBlock');
+      if (t.status === 'COMPLETED' && t.resultText) {
+        document.getElementById('d-result').textContent = t.resultText;
+        resBlock.classList.add('visible');
+      } else {
+        resBlock.classList.remove('visible');
+        document.getElementById('d-result').textContent = '';
+      }
+    }
+
+    function updateTaskInCache(taskId, status, progress, completedAt, resultText) {
+      const upd = (list) => {
+        const idx = list.findIndex(t => t.taskId === taskId);
+        if (idx >= 0) {
+          if (status) list[idx].status = status;
+          if (typeof progress === 'number') list[idx].progress = progress;
+          if (completedAt !== undefined) list[idx].completedAt = completedAt;
+          if (resultText !== undefined) list[idx].resultText = resultText;
+        }
+      };
+      upd(allTasks);
+      upd(filteredTasks);
+    }
+
+    async function openDetails(taskId) {
+      try {
+        const resp = await fetch(`${API_BASE}/tasks/${encodeURIComponent(taskId)}`);
+        if (!resp.ok) {
+          throw new Error('Задача не найдена');
+        }
+        const t = await resp.json();
+
+        document.getElementById('d-id').textContent = t.taskId || '';
+        document.getElementById('d-user').textContent = t.userName || '';
+        document.getElementById('d-text').textContent = t.taskText || '';
+        document.getElementById('d-status').textContent = formatStatus(t.status);
+        document.getElementById('d-progress').textContent = (t.progress ?? 0) + '%';
+        document.getElementById('d-created').textContent = formatDate(t.createdAt);
+        document.getElementById('d-completed').textContent = t.completedAt ? formatDate(t.completedAt) : '—';
+
+        const resBlock = document.getElementById('d-resultBlock');
+        if (t.status === 'COMPLETED' && t.resultText) {
+          document.getElementById('d-result').textContent = t.resultText;
+          resBlock.classList.add('visible');
+        } else {
+          resBlock.classList.remove('visible');
+          document.getElementById('d-result').textContent = '';
+        }
+
+        updateTaskInCache(t.taskId, t.status, t.progress, t.completedAt, t.resultText);
+
+        currentTaskId = t.taskId;
+
+        switchMode('mode-details');
+
+        if (currentUserName) {
+          connectWSForUser(currentUserName);
+        }
+      } catch (e) {
+        showError(e.message || 'Ошибка сети');
+      }
+    }
+
+    function formatDate(val) {
+      if (!val) return '—';
+      const d = new Date(val);
+      if (Number.isNaN(d.getTime())) return val;
+      return d.toLocaleString('ru-RU', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    function formatStatus(s) {
+      switch (s) {
+        case 'QUEUED': return 'В очереди';
+        case 'IN_PROGRESS': return 'В процессе';
+        case 'COMPLETED': return 'Выполнено';
+        case 'FAILED': return 'Ошибка';
+        default: return s || '';
+      }
+    }
+
+    window.addEventListener('beforeunload', () => {
+      if (ws) ws.close();
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('sendBtn').addEventListener('click', createTask);
+      document.getElementById('myTasksBtn').addEventListener('click', loadTasks);
+      document.getElementById('createNewBtn').addEventListener('click', showCreate);
+      document.getElementById('listFromProgress').addEventListener('click', loadTasks);
+      document.getElementById('createFromList').addEventListener('click', showCreate);
+      document.getElementById('backToList').addEventListener('click', showList);
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+package edu.learn.taskprocessor.dto.openrouter
+
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class ChatMessage(
+    val role: String,
+    val content: String
+)
