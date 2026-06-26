@@ -73,7 +73,7 @@ class UserWebSocketRouteTest {
             }
 
             assertTrue(pong is Frame.Text)
-            val pongText = (pong as Frame.Text).readText()
+            val pongText = pong.readText()
             assertTrue(pongText.contains("PONG"))
 
             notifier.notify(
@@ -92,7 +92,7 @@ class UserWebSocketRouteTest {
             }
 
             assertTrue(notification is Frame.Text)
-            val notificationText = (notification as Frame.Text).readText()
+            val notificationText = notification.readText()
             assertTrue(notificationText.contains("TASK_STARTED"))
             assertTrue(notificationText.contains("task-1"))
             assertTrue(notificationText.contains("Started"))

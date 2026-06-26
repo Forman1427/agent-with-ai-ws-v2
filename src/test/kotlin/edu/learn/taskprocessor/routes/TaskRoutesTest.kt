@@ -5,7 +5,6 @@ import edu.learn.taskprocessor.plugins.configureRouting
 import edu.learn.taskprocessor.plugins.configureSerialization
 import edu.learn.taskprocessor.plugins.configureWebSocket
 import edu.learn.taskprocessor.services.TaskService
-import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.call.body
