@@ -94,6 +94,10 @@ tasks.shadowJar {
     archiveClassifier.set("")
     archiveVersion.set("")
     mergeServiceFiles()
+
+    // Защита от дублей ресурсов при мердже
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
     manifest {
         attributes["Main-Class"] = application.mainClass.get()
     }

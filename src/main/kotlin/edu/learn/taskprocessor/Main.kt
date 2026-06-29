@@ -8,6 +8,7 @@ import edu.learn.taskprocessor.plugins.configureCors
 import edu.learn.taskprocessor.plugins.configureRouting
 import edu.learn.taskprocessor.plugins.configureSerialization
 import edu.learn.taskprocessor.plugins.configureWebSocket
+import edu.learn.taskprocessor.repository.InMemoryTaskRepository
 import edu.learn.taskprocessor.repository.PostgresTaskRepository
 import edu.learn.taskprocessor.routes.UserWebSocketNotifier
 import edu.learn.taskprocessor.routes.UserWebSocketSessionRegistry
@@ -37,11 +38,17 @@ fun main() {
 }
 
 fun Application.module() {
-    DatabaseFactory.init()
 
-    val taskRepository = PostgresTaskRepository()
 
     val appConfig = ConfigFactory.load().getConfig("processing")
+
+    val useInMemoryRepository = appConfig.getBoolean("useInMemoryRepository")
+    val taskRepository = if (useInMemoryRepository) InMemoryTaskRepository() else {
+        DatabaseFactory.init()
+        PostgresTaskRepository()
+    }
+
+
     val useMockAi = appConfig.getBoolean("useMockAi")
     val aiServiceClient = if (useMockAi) MockAiServiceClient() else RealAiServiceClient()
 
@@ -54,7 +61,8 @@ fun Application.module() {
     val taskProcessingQueue = TaskProcessingQueueImpl(
         taskProcessingService = taskProcessingService,
         workerCount = workerCount,
-        scope = processingScope)
+        scope = processingScope
+    )
     val taskService = TaskServiceImpl(taskRepository, taskProcessingQueue)
 
     configureCors()

@@ -21,13 +21,29 @@ object DatabaseFactory {
             return
         }
 
-        val config = ConfigFactory.load().getConfig("database")
+        // ЯВНАЯ загрузка application.conf
+        val config = try {
+            ConfigFactory.load("application.conf")
+        } catch (e: Exception) {
+            log.error(e) { "Failed to load configuration from application.conf" }
+            throw e
+        }
 
-        val jdbcUrl = config.getString("url")
-        val driver = config.getString("driver")
-        val user = config.getString("user")
-        val password = config.getString("password")
-        val maximumPoolSize = config.getInt("maximumPoolSize")
+        if (!config.hasPath("database")) {
+            val keys = config.root().keys
+            log.error { "Config does not contain 'database' path. Available root keys: $keys" }
+            throw IllegalStateException(
+                "Missing database config. Check that application.conf contains 'database { ... }' section."
+            )
+        }
+
+        val dbConfig = config.getConfig("database")
+
+        val jdbcUrl = System.getenv("DB_URL") ?: dbConfig.getString("url")
+        val user = System.getenv("DB_USER") ?: dbConfig.getString("user")
+        val password = System.getenv("DB_PASSWORD") ?: dbConfig.getString("password")
+        val driver = dbConfig.getString("driver")
+        val maximumPoolSize = dbConfig.getInt("maximumPoolSize")
 
         val hikariConfig = HikariConfig().apply {
             this.jdbcUrl = jdbcUrl
