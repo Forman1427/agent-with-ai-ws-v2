@@ -1,6 +1,6 @@
 package edu.learn.taskprocessor.plugins
 
-import com.typesafe.config.ConfigFactory
+import edu.learn.taskprocessor.config.AppConfig
 import io.github.oshai.kotlinlogging.KotlinLogging.logger
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
@@ -11,7 +11,7 @@ import io.ktor.server.plugins.cors.routing.CORS
 private val log = logger {}
 
 fun Application.configureCors() {
-    val config = ConfigFactory.load().getConfig("cors")
+    val config = AppConfig.instance.getConfig("cors")
     val allowedHosts = config.getStringList("allowedHosts")
 
     install(CORS) {

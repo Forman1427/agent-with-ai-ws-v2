@@ -1,6 +1,6 @@
 package edu.learn.taskprocessor
 
-import com.typesafe.config.ConfigFactory
+import edu.learn.taskprocessor.config.AppConfig
 import edu.learn.taskprocessor.database.DatabaseFactory
 import io.github.oshai.kotlinlogging.KotlinLogging.logger
 import edu.learn.taskprocessor.plugins.configureCallLogging
@@ -40,16 +40,20 @@ fun main() {
 fun Application.module() {
 
 
-    val appConfig = ConfigFactory.load().getConfig("processing")
+    val appConfig = AppConfig.instance.getConfig("processing")
 
-    val useInMemoryRepository = appConfig.getBoolean("useInMemoryRepository")
+    val useInMemoryRepository = AppConfig.booleanFromEnvOrConfig(
+        "PROCESSING_USE_IN_MEMORY_REPOSITORY", appConfig, "useInMemoryRepository"
+    )
     val taskRepository = if (useInMemoryRepository) InMemoryTaskRepository() else {
         DatabaseFactory.init()
         PostgresTaskRepository()
     }
 
 
-    val useMockAi = appConfig.getBoolean("useMockAi")
+    val useMockAi = AppConfig.booleanFromEnvOrConfig(
+        "PROCESSING_USE_MOCK_AI", appConfig, "useMockAi"
+    )
     val aiServiceClient = if (useMockAi) MockAiServiceClient() else RealAiServiceClient()
 
     val sessionRegistry = UserWebSocketSessionRegistry()

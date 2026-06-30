@@ -2,7 +2,7 @@ package edu.learn.taskprocessor.database
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import com.typesafe.config.ConfigFactory
+import edu.learn.taskprocessor.config.AppConfig
 import edu.learn.taskprocessor.repository.tables.TasksTable
 import io.github.oshai.kotlinlogging.KotlinLogging.logger
 import org.jetbrains.exposed.sql.Database
@@ -21,13 +21,7 @@ object DatabaseFactory {
             return
         }
 
-        // ЯВНАЯ загрузка application.conf
-        val config = try {
-            ConfigFactory.load("application.conf")
-        } catch (e: Exception) {
-            log.error(e) { "Failed to load configuration from application.conf" }
-            throw e
-        }
+        val config = AppConfig.instance
 
         if (!config.hasPath("database")) {
             val keys = config.root().keys

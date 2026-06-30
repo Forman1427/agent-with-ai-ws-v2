@@ -33,6 +33,8 @@ services:
       postgres:
         # ждём пока postgres станет healthy (healthcheck)
         condition: service_healthy
+    env_file:
+      - .env
     environment:
       # настройки БД для приложения (DatabaseFactory читает эти env переменные)
       DB_URL: "jdbc:postgresql://postgres:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-taskprocessor_db}"
@@ -40,7 +42,7 @@ services:
       DB_PASSWORD: "${POSTGRES_PASSWORD:-taskprocessor}"
 
       # ключ для внешнего AI-сервиса (если нужен)
-      AI_API_KEY: "${AI_API_KEY:-}"
+      AI_API_KEY: "${AI_API_KEY}"
 
       # режим Ktor (в проде лучше false)
       KTOR_DEVELOPMENT: "false"
